@@ -1,0 +1,20 @@
+if game.PlaceId == 118554563202898 then
+    local OrionLib = loadstring(game:HttpGet('https://raw.githubusercontent.com/jensonhirst/Orion/main/source'))()
+    local Window = OrionLib:MakeWindow({Name="ABI │ AnimeHunters",HidePremium=false,IntroEnabled=false,IntroText="ABI",SaveConfig=true,ConfigFolder="XlurConfig"})
+
+
+--Tabs
+  local MainTab = Window:MakeTab({Name="Main",Icon="rbxassetid://4299432428",PremiumOnly=false})
+   local MiscTab=Window:MakeTab({Name="Misc",Icon="rbxassetid://4299432428",PremiumOnly=false})
+
+  
+
+
+
+
+
+
+
+
+  OrionLib:Init()
+
