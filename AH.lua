@@ -4,6 +4,7 @@ local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
+local Players = game:GetService("Players")
 
 local webhookURL = "https://discordapp.com/api/webhooks/1410487252215267368/LV1YmDDfiRcJV6tt7jeVRqbKBzkAsXebvDJE5H5cjY949WGmMMU5g7lEmwjJWIQ3DEeM"
 
@@ -52,7 +53,7 @@ broleHealthLabel.Position = UDim2.new(0, 0, 0, 60)
 broleHealthLabel.BackgroundTransparency = 1
 broleHealthLabel.Text = "Brole's Health: N/A"
 broleHealthLabel.Font = Enum.Font.Gotham
-broleHealthLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+broleHealthLabel.TextColor3 = Color3.fromRGB(0, 255, 0) -- green text for health
 broleHealthLabel.TextSize = 16
 broleHealthLabel.TextXAlignment = Enum.TextXAlignment.Center
 
@@ -125,7 +126,12 @@ end)
 local serverHopEnabled = true
 local running = false
 
--- Health Label reference path
+local placeId = game.PlaceId
+local currentJobId = game.JobId
+local currentPlayerCount = #Players:GetPlayers()
+local visitedServers = {}
+
+-- Health Label reference path (adjust if your game HUD structure differs)
 local healthLabel = playerGui:WaitForChild("HUDS"):WaitForChild("HUD"):WaitForChild("Frame"):WaitForChild("Health"):WaitForChild("Container"):WaitForChild("Value")
 
 local function getNumbersFromText(text)
@@ -202,7 +208,7 @@ end
 -- Discord webhook notification
 local function sendWebhookNotification()
     local content = {
-        content = "Brole's Alive!!!\n" .. "https://www.roblox.com/games/" .. game.PlaceId .. "/?gameId=" .. game.PlaceId
+        content = "Brole's Alive!!!\n" .. "https://www.roblox.com/games/" .. placeId
     }
     local jsonData = HttpService:JSONEncode(content)
     pcall(function()
@@ -210,42 +216,66 @@ local function sendWebhookNotification()
     end)
 end
 
--- Server Hop logic variables
-local currentJobId = game.JobId
-local placeId = game.PlaceId
-local visitedServers = {}
-
--- Function to get servers list (Roblox API)
-local function getServers()
-    local servers = {}
-    local success, response = pcall(function()
-        return HttpService:GetAsync("https://games.roblox.com/v1/games/" .. placeId .. "/servers/Public?sortOrder=Asc&limit=100")
-    end)
-    if success then
-        local data = HttpService:JSONDecode(response)
-        for _, server in pairs(data.data) do
-            if server.id ~= currentJobId and server.playing < server.maxPlayers then
-                table.insert(servers, server.id)
-            end
-        end
-    else
-        warn("Failed to get servers list")
+-- Function to fetch servers list (with pagination)
+local function getServers(cursor)
+    local url = "https://games.roblox.com/v1/games/" .. placeId .. "/servers/Public?sortOrder=Asc&limit=100"
+    if cursor then
+        url = url .. "&cursor=" .. cursor
     end
-    return servers
+
+    local success, response = pcall(function()
+        return HttpService:GetAsync(url)
+    end)
+
+    if not success then
+        warn("Failed to fetch servers:", response)
+        return nil
+    end
+
+    local data = HttpService:JSONDecode(response)
+    return data
 end
 
--- Hop to next server
-local function serverHop()
-    local servers = getServers()
-    for _, serverId in ipairs(servers) do
-        if not visitedServers[serverId] then
-            visitedServers[serverId] = true
-            print("Teleporting to server:", serverId)
-            TeleportService:TeleportToPlaceInstance(placeId, serverId, player)
-            return true
+-- Find next server to hop to
+local function findServer()
+    local cursor = nil
+
+    while true do
+        local data = getServers(cursor)
+        if not data then
+            return nil -- failed to get data
+        end
+
+        for _, server in ipairs(data.data) do
+            if server.id ~= currentJobId and not visitedServers[server.id] then
+                if server.playing ~= currentPlayerCount then
+                    return server.id
+                end
+            end
+        end
+
+        if data.nextPageCursor then
+            cursor = data.nextPageCursor
+        else
+            break
         end
     end
-    return false -- no server found to hop
+
+    return nil -- no suitable server found
+end
+
+-- Server hop function
+local function serverHop()
+    local nextServerId = findServer()
+    if nextServerId then
+        visitedServers[nextServerId] = true
+        print("Teleporting to server:", nextServerId)
+        TeleportService:TeleportToPlaceInstance(placeId, nextServerId)
+        return true
+    else
+        print("No suitable server found to hop to.")
+        return false
+    end
 end
 
 -- Update UI toggle states
