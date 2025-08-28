@@ -10,7 +10,7 @@ end
 print("OrionLib Loaded Successfully!")
 
 local Window = OrionLib:MakeWindow({
-    Name = "ABI │ AnimeHuntersv2",
+    Name = "ABI │ AnimeHunters",
     HidePremium = false,
     IntroEnabled = false,
     IntroText = "ABI",
@@ -30,11 +30,33 @@ local MiscTab = Window:MakeTab({
     PremiumOnly = false
 })
 
+-- Server Hop Toggle
 MiscTab:AddToggle({
     Name = "Server Hop",
     Default = false,
     Callback = function(Value)
-        -- Placeholder for Server Hop logic (to be added later)
+        if Value then
+            local HttpService = game:GetService("HttpService")
+            local TeleportService = game:GetService("TeleportService")
+            local Players = game:GetService("Players")
+            local currentJobId = game.JobId
+            local placeId = game.PlaceId
+
+            local success, response = pcall(function()
+                return HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" .. placeId .. "/servers/Public?sortOrder=Asc&limit=100"))
+            end)
+
+            if success and response and response.data then
+                for _, server in ipairs(response.data) do
+                    if server.playing < server.maxPlayers and server.id ~= currentJobId then
+                        TeleportService:TeleportToPlaceInstance(placeId, server.id, Players.LocalPlayer)
+                        break
+                    end
+                end
+            else
+                warn("Failed to retrieve server list.")
+            end
+        end
     end
 })
 
