@@ -7,6 +7,7 @@ local TweenService = game:GetService("TweenService")
 local screenGui = Instance.new("ScreenGui", playerGui)
 screenGui.Name = "ServerHopForBroleGUI"
 screenGui.ResetOnSpawn = false
+screenGui.DisplayOrder = 9999  -- Very high to stay on top
 
 -- Main Frame
 local mainFrame = Instance.new("Frame")
@@ -15,8 +16,7 @@ mainFrame.Position = UDim2.new(0.02, 0, 0.4, 0)
 mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 mainFrame.BorderSizePixel = 0
 mainFrame.Parent = screenGui
-mainFrame.Active = true
-mainFrame.Draggable = true
+mainFrame.Active = true  -- Needed for input detection
 
 -- Rounded corners for main frame
 local mainUICorner = Instance.new("UICorner")
@@ -83,11 +83,51 @@ keybindLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
 keybindLabel.TextSize = 14
 keybindLabel.TextXAlignment = Enum.TextXAlignment.Center
 
+-- Variables for drag
+local dragging = false
+local dragInput, dragStart, startPos
+
+local function updatePosition(input)
+    local delta = input.Position - dragStart
+    mainFrame.Position = UDim2.new(
+        startPos.X.Scale,
+        startPos.X.Offset + delta.X,
+        startPos.Y.Scale,
+        startPos.Y.Offset + delta.Y
+    )
+end
+
+mainFrame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = mainFrame.Position
+
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+mainFrame.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        updatePosition(input)
+    end
+end)
+
 -- Server Hop toggle state
 local serverHopEnabled = true -- ON by default
 local running = false
 
--- Health Label reference path (you might need to adjust this based on the actual GUI hierarchy)
+-- Health Label reference path (adjust if needed)
 local healthLabel = playerGui:WaitForChild("HUDS"):WaitForChild("HUD"):WaitForChild("Frame"):WaitForChild("Health"):WaitForChild("Container"):WaitForChild("Value")
 
 local function parseDecimalNumber(text)
