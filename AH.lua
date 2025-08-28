@@ -136,36 +136,56 @@ local function getBroleHealth()
     end
 end
 
+-- Notification Sound Setup
+local notificationSound = Instance.new("Sound", playerGui)
+notificationSound.SoundId = "rbxassetid://3398620867" -- Your chosen notification sound
+notificationSound.Volume = 0.7
+
 local function notify(message)
+    -- Remove any existing notification
     for _, child in pairs(screenGui:GetChildren()) do
         if child.Name == "BroleAliveNotification" then
             child:Destroy()
         end
     end
 
+    -- Create background frame
     local bg = Instance.new("Frame")
     bg.Name = "BroleAliveNotification"
-    bg.Size = UDim2.new(1, 0, 1, 0)
-    bg.BackgroundColor3 = Color3.new(0, 0, 0)
-    bg.BackgroundTransparency = 0.6
+    bg.Size = UDim2.new(0, 400, 0, 120)
+    bg.Position = UDim2.new(0.5, -200, 0.5, -60) -- Center of the screen
+    bg.BackgroundColor3 = Color3.fromRGB(25, 25, 25) -- dark theme
+    bg.BackgroundTransparency = 0
     bg.ZIndex = 9999
     bg.Parent = screenGui
 
+    local bgUICorner = Instance.new("UICorner")
+    bgUICorner.CornerRadius = UDim.new(0, 12)
+    bgUICorner.Parent = bg
+
+    -- Text label
     local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(0, 400, 0, 120)
-    label.Position = UDim2.new(0.5, -200, 0.5, -60)
-    label.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
-    label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    label.Size = UDim2.new(1, 0, 1, 0)
+    label.BackgroundTransparency = 1
+    label.TextColor3 = Color3.fromRGB(0, 255, 0) -- bright green
     label.Font = Enum.Font.GothamBold
     label.TextSize = 36
     label.Text = message
     label.ZIndex = 10000
     label.Parent = bg
 
+    -- Tween to fade out background
     local tweenInfo = TweenInfo.new(1, Enum.EasingStyle.Linear, Enum.EasingDirection.Out, 0, false, 4)
     TweenService:Create(bg, tweenInfo, {BackgroundTransparency = 1}):Play()
+
+    -- Play notification sound
+    notificationSound:Play()
+
+    -- Remove after 5 seconds
     task.delay(5, function()
-        bg:Destroy()
+        if bg then
+            bg:Destroy()
+        end
     end)
 end
 
