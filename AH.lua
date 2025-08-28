@@ -10,7 +10,7 @@ end
 print("OrionLib Loaded Successfully!")
 
 local Window = OrionLib:MakeWindow({
-    Name = "ABI │ AnimeHunters",
+    Name = "ABI │ AnimeHuntersv2",
     HidePremium = false,
     IntroEnabled = false,
     IntroText = "ABI",
