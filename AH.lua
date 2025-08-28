@@ -4,17 +4,18 @@ local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
-local Players = game:GetService("Players")
 
-local webhookURL = "https://discordapp.com/api/webhooks/1410487252215267368/LV1YmDDfiRcJV6tt7jeVRqbKBzkAsXebvDJE5H5cjY949WGmMMU5g7lEmwjJWIQ3DEeM"
+-- Settings
+local AutoTeleport = true
+local DontTeleportTheSameNumber = true
+local CopytoClipboard = false
 
--- Create GUI
+-- GUI Setup
 local screenGui = Instance.new("ScreenGui", playerGui)
 screenGui.Name = "ServerHopForBroleGUI"
 screenGui.ResetOnSpawn = false
-screenGui.DisplayOrder = 9999  -- Very high to stay on top
+screenGui.DisplayOrder = 9999
 
--- Main Frame
 local mainFrame = Instance.new("Frame")
 mainFrame.Size = UDim2.new(0, 280, 0, 180)
 mainFrame.Position = UDim2.new(0.02, 0, 0.4, 0)
@@ -29,19 +30,16 @@ mainUICorner.Parent = mainFrame
 
 local titleLabel = Instance.new("TextLabel", mainFrame)
 titleLabel.Size = UDim2.new(1, 0, 0, 30)
-titleLabel.Position = UDim2.new(0, 0, 0, 0)
-titleLabel.BackgroundTransparency = 1
 titleLabel.Text = "Server Hop for Brole"
+titleLabel.BackgroundTransparency = 1
 titleLabel.Font = Enum.Font.GothamBold
 titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 titleLabel.TextSize = 18
-titleLabel.TextXAlignment = Enum.TextXAlignment.Center
 
 local statusLabel = Instance.new("TextLabel", mainFrame)
 statusLabel.Size = UDim2.new(1, 0, 0, 20)
 statusLabel.Position = UDim2.new(0, 0, 0, 35)
 statusLabel.BackgroundTransparency = 1
-statusLabel.Text = "🟢 ON"
 statusLabel.Font = Enum.Font.Gotham
 statusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 statusLabel.TextSize = 16
@@ -53,9 +51,8 @@ broleHealthLabel.Position = UDim2.new(0, 0, 0, 60)
 broleHealthLabel.BackgroundTransparency = 1
 broleHealthLabel.Text = "Brole's Health: N/A"
 broleHealthLabel.Font = Enum.Font.Gotham
-broleHealthLabel.TextColor3 = Color3.fromRGB(0, 255, 0) -- green text for health
+broleHealthLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 broleHealthLabel.TextSize = 16
-broleHealthLabel.TextXAlignment = Enum.TextXAlignment.Center
 
 local toggleButton = Instance.new("TextButton", mainFrame)
 toggleButton.Size = UDim2.new(0.85, 0, 0, 40)
@@ -80,20 +77,13 @@ keybindLabel.Text = "Press F to turn ON/OFF"
 keybindLabel.Font = Enum.Font.Gotham
 keybindLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
 keybindLabel.TextSize = 14
-keybindLabel.TextXAlignment = Enum.TextXAlignment.Center
 
--- Drag logic
-local dragging = false
-local dragInput, dragStart, startPos
+-- Dragging
+local dragging, dragInput, dragStart, startPos
 
 local function updatePosition(input)
     local delta = input.Position - dragStart
-    mainFrame.Position = UDim2.new(
-        startPos.X.Scale,
-        startPos.X.Offset + delta.X,
-        startPos.Y.Scale,
-        startPos.Y.Offset + delta.Y
-    )
+    mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
 end
 
 mainFrame.InputBegan:Connect(function(input)
@@ -122,16 +112,10 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
--- Variables
+-- Health
 local serverHopEnabled = true
 local running = false
 
-local placeId = game.PlaceId
-local currentJobId = game.JobId
-local currentPlayerCount = #Players:GetPlayers()
-local visitedServers = {}
-
--- Health Label reference path (adjust if your game HUD structure differs)
 local healthLabel = playerGui:WaitForChild("HUDS"):WaitForChild("HUD"):WaitForChild("Frame"):WaitForChild("Health"):WaitForChild("Container"):WaitForChild("Value")
 
 local function getNumbersFromText(text)
@@ -145,148 +129,99 @@ end
 local function getBroleHealth()
     local rawText = healthLabel.Text
     local numbers = getNumbersFromText(rawText)
-
     if #numbers >= 2 then
-        local current = numbers[1]
-        local max = numbers[2]
-        return current, max
+        return numbers[1], numbers[2]
     else
         return nil, nil
     end
 end
 
--- Notification helper - black background with round corners and green text, 5 seconds duration
 local function notify(message)
-    -- Remove old notifications if any
     for _, child in pairs(screenGui:GetChildren()) do
         if child.Name == "BroleAliveNotification" then
             child:Destroy()
         end
     end
 
-    -- Create semi-transparent black background frame with round corners
     local bg = Instance.new("Frame")
     bg.Name = "BroleAliveNotification"
     bg.Size = UDim2.new(1, 0, 1, 0)
-    bg.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-    bg.BackgroundTransparency = 0
+    bg.BackgroundColor3 = Color3.new(0, 0, 0)
+    bg.BackgroundTransparency = 0.6
     bg.ZIndex = 9999
     bg.Parent = screenGui
 
-    local bgCorner = Instance.new("UICorner")
-    bgCorner.CornerRadius = UDim.new(0, 12)
-    bgCorner.Parent = bg
-
-    -- Create centered text label with green text
     local label = Instance.new("TextLabel")
     label.Size = UDim2.new(0, 400, 0, 120)
     label.Position = UDim2.new(0.5, -200, 0.5, -60)
-    label.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-    label.BackgroundTransparency = 0
-    label.TextColor3 = Color3.fromRGB(0, 255, 0)  -- bright green
+    label.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
+    label.TextColor3 = Color3.fromRGB(255, 255, 255)
     label.Font = Enum.Font.GothamBold
     label.TextSize = 36
     label.Text = message
-    label.TextXAlignment = Enum.TextXAlignment.Center
-    label.TextYAlignment = Enum.TextYAlignment.Center
     label.ZIndex = 10000
     label.Parent = bg
 
-    local labelCorner = Instance.new("UICorner")
-    labelCorner.CornerRadius = UDim.new(0, 12)
-    labelCorner.Parent = label
-
-    -- Tween to fade out after 5 seconds
     local tweenInfo = TweenInfo.new(1, Enum.EasingStyle.Linear, Enum.EasingDirection.Out, 0, false, 4)
-    local tween = TweenService:Create(bg, tweenInfo, {BackgroundTransparency = 1})
-    tween:Play()
-    tween.Completed:Connect(function()
+    TweenService:Create(bg, tweenInfo, {BackgroundTransparency = 1}):Play()
+    task.delay(5, function()
         bg:Destroy()
     end)
 end
 
--- Discord webhook notification
-local function sendWebhookNotification()
-    local content = {
-        content = "Brole's Alive!!!\n" .. "https://www.roblox.com/games/" .. placeId
-    }
-    local jsonData = HttpService:JSONEncode(content)
-    pcall(function()
-        HttpService:PostAsync(webhookURL, jsonData, Enum.HttpContentType.ApplicationJson)
-    end)
-end
+-- Server Hop
+local maxplayers = math.huge
+local serversmaxplayer
+local goodserver
+local placeId = game.PlaceId
+local gamelink = "https://games.roblox.com/v1/games/" .. placeId .. "/servers/Public?sortOrder=Asc&limit=100"
 
--- Function to fetch servers list (with pagination)
-local function getServers(cursor)
-    local url = "https://games.roblox.com/v1/games/" .. placeId .. "/servers/Public?sortOrder=Asc&limit=100"
-    if cursor then
-        url = url .. "&cursor=" .. cursor
-    end
-
-    local success, response = pcall(function()
-        return HttpService:GetAsync(url)
-    end)
-
-    if not success then
-        warn("Failed to fetch servers:", response)
-        return nil
-    end
-
-    local data = HttpService:JSONDecode(response)
-    return data
-end
-
--- Find next server to hop to
-local function findServer()
-    local cursor = nil
-
-    while true do
-        local data = getServers(cursor)
-        if not data then
-            return nil -- failed to get data
+local function serversearch()
+    for _, v in pairs(HttpService:JSONDecode(game:HttpGetAsync(gamelink)).data) do
+        if type(v) == "table" and maxplayers > v.playing and v.id ~= game.JobId then
+            serversmaxplayer = v.maxPlayers
+            maxplayers = v.playing
+            goodserver = v.id
         end
+    end
+end
 
-        for _, server in ipairs(data.data) do
-            if server.id ~= currentJobId and not visitedServers[server.id] then
-                if server.playing ~= currentPlayerCount then
-                    return server.id
-                end
+local function getservers()
+    serversearch()
+    local response = HttpService:JSONDecode(game:HttpGetAsync(gamelink))
+    if response.nextPageCursor then
+        if gamelink:find("&cursor=") then
+            gamelink = gamelink:sub(1, gamelink:find("&cursor=") - 1)
+        end
+        gamelink = gamelink .. "&cursor=" .. response.nextPageCursor
+        getservers()
+    end
+end
+
+local function serverHop()
+    maxplayers = math.huge
+    gamelink = "https://games.roblox.com/v1/games/" .. placeId .. "/servers/Public?sortOrder=Asc&limit=100"
+    getservers()
+
+    if CopytoClipboard and setclipboard then
+        setclipboard(goodserver)
+    end
+
+    if AutoTeleport and goodserver then
+        local currentPlayers = #game.Players:GetPlayers() - 1
+        if DontTeleportTheSameNumber then
+            if currentPlayers == maxplayers then
+                warn("Same number of players, not teleporting.")
+                return false
+            elseif goodserver == game.JobId then
+                warn("Already in the best server.")
+                return false
             end
         end
 
-        if data.nextPageCursor then
-            cursor = data.nextPageCursor
-        else
-            break
-        end
-    end
-
-    return nil -- no suitable server found
-end
-
--- Server hop function
-local function serverHop()
-    local nextServerId = findServer()
-    if nextServerId then
-        visitedServers[nextServerId] = true
-        print("Teleporting to server:", nextServerId)
-        TeleportService:TeleportToPlaceInstance(placeId, nextServerId)
+        print("Teleporting to better server:", goodserver)
+        TeleportService:TeleportToPlaceInstance(placeId, goodserver, player)
         return true
-    else
-        print("No suitable server found to hop to.")
-        return false
-    end
-end
-
--- Update UI toggle states
-local function updateUI()
-    if serverHopEnabled then
-        statusLabel.Text = "🟢 ON"
-        toggleButton.Text = "Turn OFF"
-    else
-        statusLabel.Text = "🔴 OFF"
-        toggleButton.Text = "Turn ON"
-        broleHealthLabel.Text = "Brole's Health: N/A"
     end
 end
 
@@ -298,34 +233,35 @@ local function mainLoop()
             broleHealthLabel.Text = string.format("Brole's Health: %.2f / %.2f", current, max)
             if current > 0 then
                 notify("BROLE'S ALIVE!!!")
-                sendWebhookNotification()
-                print("Brole alive. Stopping server hop.")
+                print("Brole alive. Stopping hop.")
                 serverHopEnabled = false
                 running = false
                 updateUI()
                 break
             else
-                print("Brole health is zero, hopping servers...")
                 wait(2)
-                local success = serverHop()
-                if not success then
-                    print("No more servers to hop. Resetting visited list.")
-                    visitedServers = {}
-                end
+                serverHop()
                 break
             end
         else
             broleHealthLabel.Text = "Brole's Health: N/A"
-            print("Unable to detect Brole's health, hopping anyway...")
             wait(2)
-            local success = serverHop()
-            if not success then
-                print("No more servers to hop. Resetting visited list.")
-                visitedServers = {}
-            end
+            serverHop()
             break
         end
         wait(1)
+    end
+end
+
+-- UI & Toggles
+local function updateUI()
+    if serverHopEnabled then
+        statusLabel.Text = "🟢 ON"
+        toggleButton.Text = "Turn OFF"
+    else
+        statusLabel.Text = "🔴 OFF"
+        toggleButton.Text = "Turn ON"
+        broleHealthLabel.Text = "Brole's Health: N/A"
     end
 end
 
@@ -333,16 +269,14 @@ local function toggleServerHop()
     serverHopEnabled = not serverHopEnabled
     updateUI()
     if serverHopEnabled then
-        print("Server Hop Enabled")
         running = true
         task.spawn(function()
             while running do
                 mainLoop()
-                task.wait(1)
+                wait(1)
             end
         end)
     else
-        print("Server Hop Disabled")
         running = false
     end
 end
@@ -355,14 +289,14 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     end
 end)
 
--- Initialize
+-- Init
 updateUI()
 if serverHopEnabled then
     running = true
     task.spawn(function()
         while running do
             mainLoop()
-            task.wait(1)
+            wait(1)
         end
     end)
 end
