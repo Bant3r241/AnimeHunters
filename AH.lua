@@ -12,7 +12,7 @@ local CopytoClipboard = false
 
 -- GUI Setup
 local screenGui = Instance.new("ScreenGui", playerGui)
-screenGui.Name = "ServerHopForBroleGUI"
+screenGui.Name = "ServerHopForBrolev2GUI"
 screenGui.ResetOnSpawn = false
 screenGui.DisplayOrder = 9999
 
