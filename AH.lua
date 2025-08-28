@@ -33,7 +33,7 @@ local function loadServerHopState()
 end
 
 local Window = OrionLib:MakeWindow({
-    Name = "ABI │ AnimeHunters",
+    Name = "ABI │ AnimeHuntersRQ",
     HidePremium = false,
     IntroEnabled = false,
     IntroText = "ABI",
