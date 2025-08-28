@@ -35,7 +35,7 @@ end
 
 -- Orion UI Setup
 local Window = OrionLib:MakeWindow({
-    Name = "ABI │ AnimeHunters",
+    Name = "ABI │ AnimeHuntersQRE",
     HidePremium = false,
     IntroEnabled = false,
     IntroText = "ABI",
