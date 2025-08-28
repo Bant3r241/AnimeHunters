@@ -1,60 +1,93 @@
-local success, OrionLib = pcall(function()
-    return loadstring(game:HttpGet('https://raw.githubusercontent.com/jensonhirst/Orion/main/source'))()
-end)
-
-if not success then
-    warn("OrionLib failed to load!")
-    return
-end
-
-local HttpService = game:GetService("HttpService")
-local TeleportService = game:GetService("TeleportService")
-local Players = game:GetService("Players")
-
-local player = Players.LocalPlayer
-
--- File for saving server hop toggle state
-local serverHopStateFile = "serverhop_state.json"
-
-local function saveServerHopState(enabled)
-    writefile(serverHopStateFile, HttpService:JSONEncode({enabled = enabled}))
-end
-
-local function loadServerHopState()
-    if isfile(serverHopStateFile) then
-        local success, data = pcall(function()
-            return HttpService:JSONDecode(readfile(serverHopStateFile))
-        end)
-        if success and data and data.enabled then
-            return true
-        end
-    end
-    return false
-end
-
-local Window = OrionLib:MakeWindow({
-    Name = "ABI │ AnimeHuntersRQ",
-    HidePremium = false,
-    IntroEnabled = false,
-    IntroText = "ABI",
-    SaveConfig = true,
-    ConfigFolder = "XlurConfig"
-})
-
-local Tab = Window:MakeTab({
-    Name = "Main",
-    Icon = "rbxassetid://4483345998",
-    PremiumOnly = false
-})
-
-local MiscTab = Window:MakeTab({
-    Name = "Misc",
-    Icon = "rbxassetid://4483345998",
-    PremiumOnly = false
-})
-
--- Health label for Brole
+local player = game.Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+
+-- Create GUI
+local screenGui = Instance.new("ScreenGui", playerGui)
+screenGui.Name = "ServerHopForBroleGUI"
+screenGui.ResetOnSpawn = false
+
+-- Main Frame
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 280, 0, 180)
+mainFrame.Position = UDim2.new(0.02, 0, 0.4, 0)
+mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+mainFrame.BorderSizePixel = 0
+mainFrame.Parent = screenGui
+mainFrame.Active = true
+mainFrame.Draggable = true
+
+-- Rounded corners for main frame
+local mainUICorner = Instance.new("UICorner")
+mainUICorner.CornerRadius = UDim.new(0, 8)
+mainUICorner.Parent = mainFrame
+
+-- Title Label
+local titleLabel = Instance.new("TextLabel", mainFrame)
+titleLabel.Size = UDim2.new(1, 0, 0, 30)
+titleLabel.Position = UDim2.new(0, 0, 0, 0)
+titleLabel.BackgroundTransparency = 1
+titleLabel.Text = "Server Hop for Brole"
+titleLabel.Font = Enum.Font.GothamBold
+titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+titleLabel.TextSize = 18
+titleLabel.TextXAlignment = Enum.TextXAlignment.Center
+
+-- Status Label
+local statusLabel = Instance.new("TextLabel", mainFrame)
+statusLabel.Size = UDim2.new(1, 0, 0, 20)
+statusLabel.Position = UDim2.new(0, 0, 0, 35)
+statusLabel.BackgroundTransparency = 1
+statusLabel.Text = "🟢 ON"
+statusLabel.Font = Enum.Font.Gotham
+statusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+statusLabel.TextSize = 16
+statusLabel.TextXAlignment = Enum.TextXAlignment.Center
+
+-- Brole Health Label
+local broleHealthLabel = Instance.new("TextLabel", mainFrame)
+broleHealthLabel.Size = UDim2.new(1, 0, 0, 30)
+broleHealthLabel.Position = UDim2.new(0, 0, 0, 60)
+broleHealthLabel.BackgroundTransparency = 1
+broleHealthLabel.Text = "Brole's Health: N/A"
+broleHealthLabel.Font = Enum.Font.Gotham
+broleHealthLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+broleHealthLabel.TextSize = 16
+broleHealthLabel.TextXAlignment = Enum.TextXAlignment.Center
+
+-- Toggle Button
+local toggleButton = Instance.new("TextButton", mainFrame)
+toggleButton.Size = UDim2.new(0.85, 0, 0, 40)
+toggleButton.Position = UDim2.new(0.075, 0, 0.75, 0)
+toggleButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggleButton.Font = Enum.Font.GothamBold
+toggleButton.Text = "Turn OFF"
+toggleButton.TextSize = 18
+toggleButton.BorderSizePixel = 0
+toggleButton.AutoButtonColor = true
+
+local uicorner = Instance.new("UICorner")
+uicorner.CornerRadius = UDim.new(0, 8)
+uicorner.Parent = toggleButton
+
+-- Keybind Label
+local keybindLabel = Instance.new("TextLabel", mainFrame)
+keybindLabel.Size = UDim2.new(1, 0, 0, 20)
+keybindLabel.Position = UDim2.new(0, 0, 1, -20)
+keybindLabel.BackgroundTransparency = 1
+keybindLabel.Text = "Press F to turn ON/OFF"
+keybindLabel.Font = Enum.Font.Gotham
+keybindLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
+keybindLabel.TextSize = 14
+keybindLabel.TextXAlignment = Enum.TextXAlignment.Center
+
+-- Server Hop toggle state
+local serverHopEnabled = true -- ON by default
+local running = false
+
+-- Health Label reference path (you might need to adjust this based on the actual GUI hierarchy)
 local healthLabel = playerGui:WaitForChild("HUDS"):WaitForChild("HUD"):WaitForChild("Frame"):WaitForChild("Health"):WaitForChild("Container"):WaitForChild("Value")
 
 local function parseDecimalNumber(text)
@@ -75,94 +108,58 @@ local function getBroleHealth()
     return current, max
 end
 
-local function waitForHealthReady(timeout)
-    timeout = timeout or 15
-    local start = tick()
-    while tick() - start < timeout do
+-- Loop to update Brole's health every second
+local function healthCheckLoop()
+    while running do
         local current, max = getBroleHealth()
-        if current and max and max > 0 then
-            return current, max
+        if current and max then
+            broleHealthLabel.Text = string.format("Brole's Health: %.2f / %.2f", current, max)
+        else
+            broleHealthLabel.Text = "Brole's Health: N/A"
         end
         task.wait(1)
     end
-    return nil, nil
 end
 
-local function serverHop()
-    saveServerHopState(true)
-
-    local placeId = game.PlaceId
-    local currentJobId = game.JobId
-
-    local success, response = pcall(function()
-        return HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" .. placeId .. "/servers/Public?sortOrder=Asc&limit=100"))
-    end)
-
-    if not success or not response or not response.data then
-        warn("Failed to get server list")
-        return
+local function updateUI()
+    if serverHopEnabled then
+        statusLabel.Text = "🟢 ON"
+        toggleButton.Text = "Turn OFF"
+    else
+        statusLabel.Text = "🔴 OFF"
+        toggleButton.Text = "Turn ON"
+        broleHealthLabel.Text = "Brole's Health: N/A"
     end
-
-    for _, server in ipairs(response.data) do
-        if server.playing < server.maxPlayers and server.id ~= currentJobId then
-            print("Teleporting to server: "..server.id)
-            TeleportService:TeleportToPlaceInstance(placeId, server.id, player)
-            return -- teleport kicks in immediately
-        end
-    end
-
-    warn("No suitable server found for hopping.")
 end
 
-MiscTab:AddToggle({
-    Name = "Server Hop",
-    Default = false,
-    Flag = "ServerHopToggle",
-    Save = true,
-    Callback = function(enabled)
-        if enabled then
-            saveServerHopState(true)
-            task.spawn(function()
-                while true do
-                    local current, max = waitForHealthReady()
-                    if current and max then
-                        print(string.format("Brole's Health: %.2f / %.2f", current, max))
-                        if current > 0 then
-                            print("Brole is alive! Stopping server hop.")
-                            break
-                        else
-                            print("Brole's health is 0, hopping to another server...")
-                            serverHop()
-                            return
-                        end
-                    else
-                        print("Could not read Brole's health, retrying...")
-                        task.wait(2)
-                    end
-                end
-            end)
-        else
-            saveServerHopState(false)
+local function toggleServerHop()
+    serverHopEnabled = not serverHopEnabled
+    updateUI()
+    if serverHopEnabled then
+        print("Server Hop Enabled")
+        if not running then
+            running = true
+            task.spawn(healthCheckLoop)
         end
+    else
+        print("Server Hop Disabled")
+        running = false
     end
-})
+end
 
-OrionLib:MakeNotification({
-    Name = "ABI",
-    Content = "Loading Script!",
-    Image = "rbxassetid://4483345998",
-    Time = 5
-})
+-- Button Click
+toggleButton.MouseButton1Click:Connect(toggleServerHop)
 
-OrionLib:Init()
-
--- Auto trigger toggle callback on script load if toggle saved ON
-task.delay(1, function()
-    if OrionLib.Flags["ServerHopToggle"] then
-        print("Server Hop toggle was saved ON, triggering callback to auto start hopping...")
-        local callback = MiscTab.Toggles["ServerHopToggle"].Callback
-        if callback then
-            callback(true)
-        end
+-- Keybind (F)
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if not gameProcessed and input.KeyCode == Enum.KeyCode.F then
+        toggleServerHop()
     end
 end)
+
+-- Initialize UI state and start health loop
+updateUI()
+if serverHopEnabled then
+    running = true
+    task.spawn(healthCheckLoop)
+end
