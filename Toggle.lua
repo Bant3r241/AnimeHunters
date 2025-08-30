@@ -1,10 +1,10 @@
 local Toggles = {}
 
 function Toggles.init(Window)
-    
+    -- Make sure the tab exists
     local Tab = Window:FindFirstChild("Main") or Window.Tabs[1]
 
-   
+    -- Example Toggle
     Tab:CreateToggle({
         Name = "Example Toggle",
         CurrentValue = false,
@@ -16,3 +16,4 @@ function Toggles.init(Window)
 end
 
 return Toggles
+
