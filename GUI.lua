@@ -10,7 +10,7 @@ function ServerHopGUI.createGUI(player)
     screenGui.ResetOnSpawn = false
     screenGui.DisplayOrder = 9999
 
-    -- Main Frame
+    
     local mainFrame = Instance.new("Frame")
     mainFrame.Size = UDim2.new(0, 280, 0, 180)
     mainFrame.Position = UDim2.new(0.02, 0, 0.4, 0)
@@ -23,16 +23,16 @@ function ServerHopGUI.createGUI(player)
     mainUICorner.CornerRadius = UDim.new(0, 8)
     mainUICorner.Parent = mainFrame
 
-    -- Title Label
+  
     local titleLabel = Instance.new("TextLabel", mainFrame)
     titleLabel.Size = UDim2.new(1, 0, 0, 30)
-    titleLabel.Text = "Server Hop for Brole"
+    titleLabel.Text = "Find Brole"
     titleLabel.BackgroundTransparency = 1
     titleLabel.Font = Enum.Font.GothamBold
     titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
     titleLabel.TextSize = 18
 
-    -- Status Label (ON/OFF Indicator)
+    
     local statusLabel = Instance.new("TextLabel", mainFrame)
     statusLabel.Size = UDim2.new(1, 0, 0, 20)
     statusLabel.Position = UDim2.new(0, 0, 0, 35)
@@ -41,9 +41,9 @@ function ServerHopGUI.createGUI(player)
     statusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
     statusLabel.TextSize = 16
     statusLabel.TextXAlignment = Enum.TextXAlignment.Center
-    statusLabel.Text = "🟢 ON"  -- Default status (you can set it to OFF initially)
+    statusLabel.Text = "🟢 ON" -- Set On by defualt
 
-    -- Toggle Button
+   
     local toggleButton = Instance.new("TextButton", mainFrame)
     toggleButton.Size = UDim2.new(0.85, 0, 0, 40)
     toggleButton.Position = UDim2.new(0.075, 0, 0.75, 0)
@@ -59,7 +59,7 @@ function ServerHopGUI.createGUI(player)
     uicorner.CornerRadius = UDim.new(0, 8)
     uicorner.Parent = toggleButton
 
-    -- Keybind Label
+  
     local keybindLabel = Instance.new("TextLabel", mainFrame)
     keybindLabel.Size = UDim2.new(1, 0, 0, 20)
     keybindLabel.Position = UDim2.new(0, 0, 1, -20)
