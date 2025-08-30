@@ -31,9 +31,3 @@ Toggles.init(Window)
 
 
 Buttons.init(Window)
-
-
-0_Main.lua
-Tabs/
-Toggles/
-Buttons/
