@@ -11,7 +11,7 @@ return function(Window, OrionLib)
     local ESPTab = Window:MakeTab({Name = "ESP", Icon = "rbxassetid://4483345998"})
     
     ESPTab:AddToggle({
-        Name = "Enable ESP",
+        Name = "Player ESP",
         Default = false,
         Callback = function(Value)
             print("ESP:", Value)
